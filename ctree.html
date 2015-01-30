@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<style>
+* {
+font-family:Arial;
+font-size:11px;
+}
+.splitinfo {
+padding-left:5px;
+margin-bottom:2px;
+margin-left:10px;
+}
+
+.label {
+  font: 12px Arial,sans-serif;
+  text-anchor: middle;
+fill:#fff;
+}
+
+rect {
+  stroke: #fff;
+}
+.expl { position:absolute;bottom:120px;right:0px;padding-top:10px;background:#ff0;z-index:5;width:100px;height:200px; }
+
+</style>
+<div id="expl"></div>
+<body>
+<script src="d3.v3.min.js"></script>
+    <script type="text/javascript" src="jquery.js"></script>
+
+<script>
+//by Niels Erik Kaaber Rasmussen 2014, @nilleren
+
+var width = 1000,
+    height = 700;
+
+var x = d3.scale.linear()
+    .range([0, width]);
+
+var y = d3.scale.linear()
+    .range([0, height]);
+
+var color = d3.scale.category20c();
+
+var partition = d3.layout.partition()
+    .value(function(d) { return d.weights; });
+
+function nodeinfo(d) {
+  return d.variableName | d.prediction;
+}
+
+var svg = d3.select("body").append("svg")
+    .attr("width", width)
+    .attr("height", height);
+
+var colors =     new Array("#a3b3c7", "#e29826", "#edc92d", "#6aac38", "#42928f", "#14388c","#c08cc0","#2dc9ed",
+"#ff0000", "#e29826", "#edc92d", "#6aac38", "#42928f", "#14388c","#c08cc0","#2dc9ed");
+
+var rect = svg.selectAll("rect");
+
+d3.json("ctree.js", function(error, root) {
+  rect = rect
+      .data(partition((root)))
+    .enter().append("rect")
+      .attr("x", function(d) { return x(d.x); })
+      .attr("y", function(d) { return y(d.y); })
+      .attr("width", function(d) { return x(d.dx); })
+      .attr("height", function(d) { return y(d.dy); })
+      //.attr("fill", function(d) { return colors[d.splitvar]; })
+      //.attr("fill", function(d) { return (d.children == null) ? "#aaaaaa" : clr[d.variableName]; })
+      .attr("fill", function(d) { return (d.children == null) ? "#aaaaaa" : colors[d.variableName]; })
+      //.attr("fill", function(d,i) { return colors[ i % colors.length ]; })
+      .attr("title", function(d) { return (d.children == null) ? d.prediction : d.variableName; })
+      .on("mouseover",function(d) {
+        d3.select("#expl").html(d.children == null ?
+                                "Weights: " + d.weights + " Probabilities: " + JSON.stringify(d.probabilities)
+                              : "Variablename: " + d.variableName + (d.split != null ? " Splitpoint: " + d.split : " Index: " + d.index) /*+ " P: " + d.p */);
+         } )
+      .on("click", clicked);
+});
+
+function clicked(d) {
+  x.domain([d.x, d.x + d.dx]);
+  y.domain([d.y, 1]).range([d.y ? 20 : 0, height]);
+
+  rect.transition()
+      .duration(750)
+      .attr("x", function(d) { return x(d.x); })
+      .attr("y", function(d) { return y(d.y); })
+      .attr("width", function(d) { return x(d.x + d.dx) - x(d.x); })
+      .attr("height", function(d) { return y(d.y + d.dy) - y(d.y); });
+}
+
+</script>
